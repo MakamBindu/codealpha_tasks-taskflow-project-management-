@@ -5,8 +5,9 @@ const taskSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
-      trim: true,
     },
+
+    description: String,
 
     status: {
       type: String,
@@ -20,9 +21,7 @@ const taskSchema = new mongoose.Schema(
       default: "Medium",
     },
 
-    dueDate: {
-      type: Date,
-    },
+    dueDate: Date,
 
     project: {
       type: mongoose.Schema.Types.ObjectId,
@@ -30,29 +29,14 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
 
-    createdBy: {
+    // ✅ ADD THIS
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-
-    comments: [
-      {
-        text: String,
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
   },
-  {
-    timestamps: true, // adds createdAt & updatedAt automatically
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Task", taskSchema);

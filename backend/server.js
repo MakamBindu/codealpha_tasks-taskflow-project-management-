@@ -1,20 +1,21 @@
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
-
-// Security Packages
+import cors from "cors";
+import dotenv from "dotenv";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import xss from "xss-clean";
 import hpp from "hpp";
+import mongoose from "mongoose";   // ✅ MISSING IMPORT ADDED
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
+
+
+
 
 // Middleware
 import errorMiddleware from "./middleware/errorMiddleware.js";
@@ -28,13 +29,13 @@ const server = http.createServer(app);
 // 🔐 SECURITY LAYER
 // ==================
 
-app.use(helmet()); // Secure HTTP headers
-app.use(xss()); // Prevent XSS attacks
-app.use(hpp()); // Prevent HTTP param pollution
+app.use(helmet());
+app.use(xss());
+app.use(hpp());
 
 const limiter = rateLimit({
-  max: 100, // max 100 requests
-  windowMs: 15 * 60 * 1000, // per 15 minutes
+  max: 100,
+  windowMs: 15 * 60 * 1000,
   message: "Too many requests, please try again later",
 });
 
@@ -44,10 +45,16 @@ app.use(limiter);
 // 🌍 BASIC MIDDLEWARE
 // ==================
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 app.use(express.json());
 
@@ -58,8 +65,8 @@ app.use(express.json());
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
 });
 
 io.on("connection", (socket) => {
@@ -70,7 +77,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Make io accessible in routes
 app.set("io", io);
 
 // ==================
@@ -91,7 +97,8 @@ app.use(errorMiddleware);
 // 🗄 DATABASE CONNECTION
 // ==================
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB Connected");
     server.listen(process.env.PORT || 5000, () => {

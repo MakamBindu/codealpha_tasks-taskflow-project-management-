@@ -1,35 +1,45 @@
 import express from "express";
 import Project from "../models/Project.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import Task from "../models/Task.js";
+import protect from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// CREATE PROJECT
-router.post("/", authMiddleware, async (req, res) => {
-  try {
-    const project = await Project.create({
-      name: req.body.name,
-      owner: req.user.id,
-      members: [req.user.id]
-    });
-
-    res.json(project);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+/* ================= GET PROJECTS ================= */
+router.get("/", protect, async (req, res) => {
+  const projects = await Project.find({
+    owner: req.user._id,
+  });
+  res.json(projects);
 });
 
-// GET USER PROJECTS
-router.get("/", authMiddleware, async (req, res) => {
-  try {
-    const projects = await Project.find({
-      members: req.user.id
-    });
+/* ================= CREATE PROJECT ================= */
+router.post("/", protect, async (req, res) => {
+  const project = await Project.create({
+    name: req.body.name,
+    owner: req.user._id,
+    members: [req.user._id],
+  });
 
-    res.json(projects);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  res.status(201).json(project);
+});
+
+/* ================= DELETE PROJECT ================= */
+router.delete("/:id", protect, async (req, res) => {
+  const project = await Project.findById(req.params.id);
+
+  if (!project)
+    return res.status(404).json({ message: "Project not found" });
+
+  if (project.owner.toString() !== req.user._id.toString())
+    return res.status(401).json({ message: "Not authorized" });
+
+  await project.deleteOne();
+
+  // Delete related tasks
+  await Task.deleteMany({ project: req.params.id });
+
+  res.json({ message: "Project deleted" });
 });
 
 export default router;
